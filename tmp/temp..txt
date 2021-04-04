@@ -1,0 +1,2 @@
+This Directory is use to save final vcard file before sending.
+After sending, the file is removed.
