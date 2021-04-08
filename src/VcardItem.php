@@ -2,19 +2,17 @@
 
 namespace VcardFusion;
 
-class VcardItem 
+class VcardItem
 {
-    private $id;
     private $filename;
-    private $isAnOccurrence;
-    private $data;
     private $version;
     private $fn;
     private $n;
+    private $isAnOccurrence;
+    private $data;
 
     public function __construct(string $filename)
     {
-        $this->id = uniqid();
         $this->filename = $filename;
         $this->isAnOccurrence = false;
     }
@@ -39,6 +37,27 @@ class VcardItem
         return $this;
     }
 
+    
+    /**
+     * Get the value of version
+     */ 
+    public function getVersion()
+    {
+        return $this->version;
+    }
+    
+    /**
+     * Set the value of version
+     *
+     * @return  self
+     */ 
+    public function setVersion($version)
+    {
+            $this->version = $version;
+        
+            return $this;
+        }
+  
     /**
      * Get the value of data
      */ 
@@ -55,26 +74,6 @@ class VcardItem
     public function setData($data)
     {
         $this->data[] = $data;
-
-        return $this;
-    }
-    
-    /**
-     * Get the value of version
-     */ 
-    public function getVersion()
-    {
-        return $this->version;
-    }
-
-    /**
-     * Set the value of version
-     *
-     * @return  self
-     */ 
-    public function setVersion($version)
-    {
-        $this->version = $version;
 
         return $this;
     }
@@ -120,26 +119,6 @@ class VcardItem
     }
 
     /**
-     * Get the value of id
-     */ 
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * Set the value of id
-     *
-     * @return  self
-     */ 
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    /**
      * Get the value of isAnOccurrence
      */ 
     public function getIsAnOccurrence()
@@ -157,5 +136,20 @@ class VcardItem
         $this->isAnOccurrence = $isAnOccurrence;
 
         return $this;
+    }
+    
+    /**
+     *  Convert Data array into a formatted string
+     *
+     * @return string $data
+     */
+    public  function stringifyData(): string
+    {
+        $data = "";
+        foreach ($this->data as $line) 
+        {
+            $data = $data.$line."\n";
+        }
+        return $data;
     }
 }
