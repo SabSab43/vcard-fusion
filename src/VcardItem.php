@@ -148,7 +148,9 @@ class VcardItem
         $data = "";
         foreach ($this->data as $line) 
         {
-            $data = $data.$line."\n";
+            if (!empty($line)) {
+                $data = $data.$line."\n";
+            }
         }
         return $data;
     }

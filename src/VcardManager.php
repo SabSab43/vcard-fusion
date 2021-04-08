@@ -17,15 +17,15 @@ class VcardManager
     private $checkVersion;
     private $checkOccurrences;
 
-    public function __construct(array $files = [], string $version, bool $checkVersion, bool $checkOccurrences)
+    public function __construct(array $files = [])
     {
         $this->files = $files['files'];
         $this->nbFiles = count($files['files']['name']);
         $this->tempPath =  dirname(__DIR__) . DIRECTORY_SEPARATOR . "tmp" . DIRECTORY_SEPARATOR;
         $this->finalVcardName = uniqid() . '-vcard';
-        $this->version = $version;
-        $this->checkVersion = $checkVersion;
-        $this->checkOccurrences = $checkOccurrences;
+        $this->version = isset($_POST['version']) ? $_POST['version'] : null;
+        $this->checkVersion = isset($_POST['checkVersion']) ? true : false;
+        $this->checkOccurrences = isset($_POST['checkOccurrences']) ? true: false;
     }
 
     /**
@@ -36,7 +36,14 @@ class VcardManager
     public function checkRequest(): array
     {
         $errors = [];
+
+        if ($this->version === null) {
+            $errors[] = "Aucune version n'a été renseignée.";
+            return $errors;
+        }    
+
         for ($i = 0; $i < $this->nbFiles; $i++) {
+
             if ($this->files['name'][$i] == "") {
                 $errors[] = "Aucun fichier n'a été envoyé.";
                 return $errors;
@@ -44,6 +51,7 @@ class VcardManager
 
             if ($this->files['size'][$i] <= 0) {
                 $errors[] = "Le fichier \"" . $this->files['name'][$i] . "\" est vide.";
+                return $errors;
             }
 
             if (!substr($this->files['name'][$i], -4) === ".vcf" || !substr($this->files['name'][$i], -6) === ".vcard") {
@@ -60,6 +68,9 @@ class VcardManager
      */
     public function mergeVcardFiles(): array
     {
+        $errors = $this->checkRequest();
+        if (!empty($errors)) { return $errors; }
+        
         $vcardsArray = $this->convertVcardFilesToVcardsItems();
         $vcardItems = $this->vcardsItemsGenerator($vcardsArray);
         $errors = [];
@@ -93,14 +104,30 @@ class VcardManager
     private function checkVersion(array $vcardItems): array
     {
         $errors = [];
+        $badVersionFiles = [];
+        foreach ($vcardItems as $vcardItem)
+        {
+            foreach ($badVersionFiles as $file) {
+                if ($file === $vcardItem->getFilename()) {
+                    continue;
+                }
+            }
 
-        foreach ($vcardItems as $vcardItem) { // MODIFIER POUR AFFICHER LE MESSAGE Q'UNE FOIS
-            switch ($this->version) {
+            switch ($this->version) 
+            {
                 case $this->version != $vcardItem->getVersion():
-                    $errors[] = "Le fichier Vcard \"" . $vcardItem->getFilename() . "\" est au format Vcard" . $vcardItem->getVersion() . ". Format attendu:  Vcard$this->version.";
-                    return $errors;
+                    $badVersionFiles[] = $vcardItem->getFilename()." (Vcard".$vcardItem->getVersion().")";
                     break;
             }
+        }
+
+        if (!empty($badVersionFiles)) {
+            $error = "Les fichiers Vcard suivants sont au mauvais format (format attendu : Vcard$this->version):<br>";
+
+            foreach ($badVersionFiles as $file) {
+                $error = $error."- $file<br>";
+            }
+            $errors[] = $error;
         }
         return $errors;
     }
@@ -331,15 +358,15 @@ class VcardManager
     }
 
     /**
-     * Sends the final Vcard file to user and return a message statut.
+     * Sends the final Vcard file to user.
      *
      * @param  string $finalVcardContent
-     * @return string
+     * @return array
      */
     private function sendNewVcard(string $finalVcardContent): array
     {
         file_put_contents($this->tempPath.$this->finalVcardName.".vcf", $finalVcardContent);
-
+        
         header('Content-Description: File Transfer');
         header('Content-Type: text/vcard');
         header("Content-Disposition: attachment; filename=\"$this->finalVcardName.vcf\"");
