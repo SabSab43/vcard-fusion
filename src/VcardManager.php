@@ -8,14 +8,49 @@ use ArrayAccess;
  * Merges two or multiple Vcard files and return an unique Vcard file 
  */
 class VcardManager
-{
-    private $files;
-    private $nbFiles;
+{    
+    /**
+     *
+     * @var array
+     */
+    private $files;    
+
+    /**
+     *
+     * @var int
+     */
+    private $nbFiles;    
+
+    /**
+     *
+     * @var string
+     */
     private $tempPath;
+    
+    /**
+     *
+     * @var string
+     */
     private $finalVcardName;
+        
+    /**
+     *
+     * @var string
+     */
     private $version;
+    
+    /**
+     *
+     * @var bool
+     */
     private $checkVersion;
+    
+    /**
+     *
+     * @var bool
+     */
     private $checkOccurrences;
+
 
     public function __construct(array $files = [])
     {
@@ -42,19 +77,19 @@ class VcardManager
             return $errors;
         }    
 
-        for ($i = 0; $i < $this->nbFiles; $i++) {
+        if ($this->files['name'][0] == "") {
+            $errors[] = "Aucun fichier n'a été envoyé.";
+            return $errors;
+        }
 
-            if ($this->files['name'][$i] == "") {
-                $errors[] = "Aucun fichier n'a été envoyé.";
-                return $errors;
-            }
+        for ($i = 0; $i < $this->nbFiles; $i++) {
 
             if ($this->files['size'][$i] <= 0) {
                 $errors[] = "Le fichier \"" . $this->files['name'][$i] . "\" est vide.";
-                return $errors;
+                continue;
             }
 
-            if (!substr($this->files['name'][$i], -4) === ".vcf" || !substr($this->files['name'][$i], -6) === ".vcard") {
+            if ($this->files['type'][$i] !== "text/vcard") {
                 $errors[] = "Le fichier \"" . $this->files['name'][$i] . "\" doit être au format .vcf ou .vcard.";
             }
         }
@@ -64,67 +99,71 @@ class VcardManager
     /**
      * Merges all Vcard Files into one Vcard file,it has checking occurrences and checking Vcards Versions options
      *
-     * @return array $errors - If the convertion failed, returns all errors encountered, else it returns an empty array 
+     * @return array $errors - If the convertion failed, returns all errors encountered 
      */
     public function mergeVcardFiles(): array
     {
+        // Checks data sent by user
         $errors = $this->checkRequest();
         if (!empty($errors)) { return $errors; }
-        
+
+        // Creates vcardItems from vcard files
         $vcardsArray = $this->convertVcardFilesToVcardsItems();
         $vcardItems = $this->vcardsItemsGenerator($vcardsArray);
-        $errors = [];
 
+        // Checks versions and occurrences if user chooses it
         if ($this->checkVersion) { $errors = $this->checkVersion($vcardItems); }
-
         if (!empty($errors)) { return $errors; }
-
         if ($this->checkOccurrences)
         {
             /** @var array */
             $occurrencesArray = $this->searchOccurrences($vcardItems);
-
             if (!empty($occurrencesArray)) 
             {
                 $vcardItems = $this->mergeOccurrences($occurrencesArray, $vcardItems);
             }
         }
 
-        $finalVcardContent = $this->setFinalContentVcard($vcardItems);
-        
-        if (empty($errors)) { $errors = $this->sendNewVcard($finalVcardContent); }
-
+        // Creates and send new vcard file to user, return errors if it failed
+        $finalVcardContent = $this->setFinalContentVcard($vcardItems);        
+        if (empty($errors)) { $this->sendNewVcard($finalVcardContent); }
         return $errors;
     }
 
+    
     /**
      * Checks if all Vcards have same version, return an error if they don't have same version.
      *
+     * @param  array $vcardItems
+     * @return array $errors
      */
     private function checkVersion(array $vcardItems): array
     {
+        // Checking vcards version
         $errors = [];
         $badVersionFiles = [];
         foreach ($vcardItems as $vcardItem)
         {
-            foreach ($badVersionFiles as $file) {
-                if ($file === $vcardItem->getFilename()) {
+            foreach ($badVersionFiles as $file)
+            {
+                if ($file === $vcardItem->getFilename()) 
+                {
                     continue;
                 }
             }
 
-            switch ($this->version) 
+            if($this->version != $vcardItem->getVersion()) 
             {
-                case $this->version != $vcardItem->getVersion():
-                    $badVersionFiles[] = $vcardItem->getFilename()." (Vcard".$vcardItem->getVersion().")";
-                    break;
+                $badVersionFiles[] = $vcardItem->getFilename()." (Vcard".$vcardItem->getVersion().")";
             }
         }
 
+        // creates an error for all files with not good version
         if (!empty($badVersionFiles)) {
             $error = "Les fichiers Vcard suivants sont au mauvais format (format attendu : Vcard$this->version):<br>";
 
-            foreach ($badVersionFiles as $file) {
+            foreach ($badVersionFiles as $file) 
+            {
                 $error = $error."- $file<br>";
             }
             $errors[] = $error;
@@ -135,7 +174,7 @@ class VcardManager
     /**
      * Converts each contact in sent Vcard File(s) into one VcardItem instance
      *
-     * @return array
+     * @return array $vcardsArray - [vcardArray1 => ["filename" => filename, "data" => [], ..., vcardArrayN => ...]
      */
     private function convertVcardFilesToVcardsItems(): array
     {
@@ -157,13 +196,13 @@ class VcardManager
      * Creates a VcardItem instance for each contact in files and return an array of them
      *
      * @param  array $vcardsArray
-     * @return array $vcardItems
+     * @return array $vcardItems - [0 => vcardItem1, ..., N => vcardItemN]
      */
     private function vcardsItemsGenerator(array $vcardsArray): array
     {
         $vcardItems = [];
-        foreach ($vcardsArray as $vcardArray) {
-
+        foreach ($vcardsArray as $vcardArray) 
+        {
             foreach ($vcardArray["data"] as $vcardLine) 
             {
                 if (!isset($vcardItem)) 
@@ -206,7 +245,7 @@ class VcardManager
      * Searches all occurrences in a VcardItems array
      *
      * @param  array $vcardItems
-     * @return array $occurrencesArray - [0 => [vcard1], [vcard2]...[vcardn], 1 => [vcard1], [vcard2]...[vcardn], ...]
+     * @return  array $occurencesArray - ["vcard1" => vcardItem1, "vcard2" => vcardItem2, ..., "vcardN" => vcardItemN] 
      */
     private function searchOccurrences(array $vcardItems): array
     {
@@ -231,6 +270,7 @@ class VcardManager
                 break;
         }
 
+        // Occurrences search
         for ($i = 0; $i < $vcardItemsLength; $i++)
         {
             $occurrence = ["vcard1" => $vcardItems[$i]];
@@ -262,15 +302,16 @@ class VcardManager
     /**
      * Merges all occurrences and return a new updated vcardItems array
      *
-     * @param  array $occurencesArray - ["vcard1" => vcardItem_1, "vcard2" => vcardItem_2]
+     * @param  array $occurencesArray - ["vcard1" => vcardItem1, "vcard2" => vcardItem2, ..., "vcardN" => vcardItemN] 
      * @param  array $vcardItems - vcardItems array
      * @return array $ newVcardItems - Updated vcardItems array
      */
     private function mergeOccurrences(array $occurencesArray, array $vcardItems): array
     {
-        $finalData = [];
+        // Merges all occurrences
         foreach ($occurencesArray as $occurrences) 
         {
+            // Checks all lines of each vcard and put them in a array if it's not an occurence
             $dataToMerge = [];
             $nbOccurrences = count($occurrences);
             for ($i=1; $i < $nbOccurrences + 1; $i++)
@@ -297,15 +338,13 @@ class VcardManager
                     }
                 }
             }
-
             $dataToMerge[] = "END:VCARD";
-        
-            $finalData = array_merge($finalData, $dataToMerge);
             
-            $finalDataLength = count($finalData);            
-            for ($i=0; $i < $finalDataLength; $i++)
+            // Creates a new vcardItem with all uniques properties of each old vcards
+            $dataToMergeLength = count($dataToMerge);
+            for ($i=0; $i < $dataToMergeLength; $i++)
             { 
-                $entry = $finalData[$i];
+                $entry = $dataToMerge[$i];
                 switch ($entry)
                 {
                     case substr($entry, 0, 3) === "FN:":
@@ -322,21 +361,21 @@ class VcardManager
             $vcardItem->setVersion("VERSION:".$this->version);
             if (isset($fn)){ $vcardItem->setFn($fn); }
             if (isset($n)){ $vcardItem->setN($n); }
-
-
-            foreach ($finalData as $line)
+            foreach ($dataToMerge as $line)
             {
                 $vcardItem->setData($line);
             }
+
             $vcardItems[] = $vcardItem;     
         }
 
+        // Create a new VcardItems array with new vcards and delete old occurrences
         $newVcardItems = [];
         foreach($vcardItems as $vcardItem)    
         {
             if (!$vcardItem->getIsAnOccurrence()){ $newVcardItems[] = $vcardItem; }
         }
-        // PHOTO
+
         return $newVcardItems;
     }
     
@@ -358,26 +397,27 @@ class VcardManager
     }
 
     /**
-     * Sends the final Vcard file to user.
+     * Sends the final Vcard file to user and stop the script
      *
      * @param  string $finalVcardContent
-     * @return array
+     * @return void
      */
-    private function sendNewVcard(string $finalVcardContent): array
+    private function sendNewVcard(string $finalVcardContent)
     {
         file_put_contents($this->tempPath.$this->finalVcardName.".vcf", $finalVcardContent);
         
+        header('Content-Type: text/plain');
         header('Content-Description: File Transfer');
-        header('Content-Type: text/vcard');
-        header("Content-Disposition: attachment; filename=\"$this->finalVcardName.vcf\"");
+        header("Content-Disposition: attachment; filename=\"".$this->finalVcardName.".vcf\"");
+        header('Content-Length: '.filesize($this->tempPath.$this->finalVcardName.".vcf"));        
+        header('Cache-Control: no-cache');
+        header('Pragma: no-cache');
         header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($this->tempPath.$this->finalVcardName.".vcf"));
 
+        
         readfile($this->tempPath.$this->finalVcardName.".vcf");
         unlink($this->tempPath.$this->finalVcardName.".vcf");
 
-        return [];
+        exit;
     }
 }
