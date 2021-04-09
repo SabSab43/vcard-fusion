@@ -1,7 +1,9 @@
 {
-    "name": "sabsab43/vcf-fusion",
-    "description": "Merge two vcf files (Vcard)",
+    "name": "sabsab43/vcard-fusion",
+    "description": "This library can merge multiple vcard/vcf files with an occurrences search option.",
     "type": "library",
+    "keywords":["vcard", "vcf", "merge", "occurrences"],
+    "homepage": "https://github.com/SabSab43/vcard-fusion",
     "license": "MIT",
     "authors": [
         {
