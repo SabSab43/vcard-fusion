@@ -61,7 +61,7 @@ Form example
 
           <div>
               <input type="checkbox" name="checkVersion" id="checkVersion" checked>
-              <label for="checkVersion">Check Vcard version(<strong>recommandé</strong>)</label>
+              <label for="checkVersion">Check Vcard version(<strong>recommended</strong>)</label>
           </div>
       </div>
 
