@@ -128,7 +128,7 @@ You need to specify this options in your form like in this example:
                     </div>
                    <?php endif ?>
                 <div>
-                    <input type="file" name='files[]' multiple="multiple">
+                    <input type="file" accept=".vcf, .vcard" name='files[]' multiple="multiple">
                 </div>
         </fieldset>
 
