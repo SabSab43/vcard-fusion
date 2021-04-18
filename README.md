@@ -67,7 +67,7 @@ use VcardFusion\VcardManager;
 
 /** Your code .... **/
 
-if (if(isset($_FILES) && !empty($_FILES)) 
+if (isset($_FILES) && !empty($_FILES)
 {   
     $vcm = new VcardManager($_FILES);
     $errors = $vcm->mergeVcardFiles();  
