@@ -62,6 +62,8 @@ It is vailable on Packagist: https://packagist.org/packages/sabsab43/vcard-fusio
 You just need to put this code in your controller
 
 ```php
+/** Your autoloader... **/
+require('./vendor/autoload.php');
 
 use VcardFusion\VcardManager;
 
