@@ -62,13 +62,15 @@ It is vailable on Packagist: https://packagist.org/packages/sabsab43/vcard-fusio
 You just need to put this code in your controller
 
 ```php
+/** Your autoloader... **/
+require('./vendor/autoload.php');
 
 use VcardFusion\VcardManager;
 
 /** Your code .... **/
 
 $errors = [];
-if (isset($_FILES) && !empty($_FILES)
+if (isset($_FILES) && !empty($_FILES))
 {   
     $vcm = new VcardManager($_FILES);
     $errors = $vcm->mergeVcardFiles();  
