@@ -2,8 +2,6 @@
 
 namespace VcardFusion;
 
-use ArrayAccess;
-
 /**
  * Merges two or multiple Vcard files and return an unique Vcard file 
  */
@@ -144,17 +142,18 @@ class VcardManager
         $badVersionFiles = [];
         foreach ($vcardItems as $vcardItem)
         {
+            $alreayInBadVersionfiles = false;
             foreach ($badVersionFiles as $file)
             {
-                if ($file === $vcardItem->getFilename()) 
+                if ($file['name'] === $vcardItem->getFilename()) 
                 {
-                    continue;
+                    $alreayInBadVersionfiles = true;
                 }
             }
 
-            if($this->version != $vcardItem->getVersion()) 
+            if($this->version != $vcardItem->getVersion() &&  !$alreayInBadVersionfiles) 
             {
-                $badVersionFiles[] = $vcardItem->getFilename()." (Vcard".$vcardItem->getVersion().")";
+                $badVersionFiles[] = ["name" => $vcardItem->getFilename(), "version" => $vcardItem->getVersion()];
             }
         }
 
@@ -164,7 +163,7 @@ class VcardManager
 
             foreach ($badVersionFiles as $file) 
             {
-                $error = $error."- $file<br>";
+                $error = $error."- ".$file['name']." (Vcard".$file['version'].")<br>";
             }
             $errors[] = $error;
         }
@@ -414,7 +413,6 @@ class VcardManager
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        
         readfile($this->tempPath.$this->finalVcardName.".vcf");
         unlink($this->tempPath.$this->finalVcardName.".vcf");
 
